@@ -54,6 +54,20 @@ can pass the turn.
 Assassin: the team that picked it loses. First team to uncover all its agents wins.
 The rules of both versions are also inside the app (the **?** button; tabs switch between Classic and Duet).
 
+## Sound and music
+
+The sound effects and the music were generated with [ElevenLabs](https://elevenlabs.io) from the prompts in
+`tools/audio.json`. `tools/audio.py` regenerates them into `app/src/main/res/raw/` (it needs an ElevenLabs API key in
+`$ELEVENLABS_API_KEY` or `~/.config/elevenlabs/api_key`; paid generations are cached in `tools/audio-cache/`, which is
+not in git, so only changed prompts are generated again). Effects are trimmed and levelled; music is made into a
+seamless loop.
+
+Music: a spy lounge tune in the menus and a quiet spy-jazz one during a game. During a game only one phone plays
+music, so the two never play the same tune out of step: the table phone (the spymaster's stays quiet), or in Duet
+the phone that created the game.
+
+The 🎵 button on the first screen turns the music off. The sound effects stay on: they are part of the game.
+
 ## Build
 
 Requirements: JDK 17 or newer and the Android SDK (platform 35).
@@ -73,7 +87,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | `.../Duet.kt`, `DuetScreens.kt` | Duet: layout of the two keys, rules engine, per-player view, host and guest sessions, screens |
 | `.../Link.kt`, `LanLink.kt`, `NearbyLink.kt` | The two transports behind one interface |
 | `.../AppViewModel.kt` | Wires game, sessions and links together; reconnection |
-| `.../Screens.kt`, `Theme.kt`, `Strings.kt`, `Sfx.kt` | UI, look, texts (three languages, rules page), synthesised sounds |
+| `.../Screens.kt`, `Theme.kt`, `Strings.kt`, `Sfx.kt` | UI, look, texts (three languages, rules page), sound effects and music player |
 | `app/src/main/assets/words_{en,pt,es}.txt` | One word per line |
 
 ## Testing two phones on a PC

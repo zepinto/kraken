@@ -1,95 +1,113 @@
 package com.zepinto.codenames
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
+import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
-import kotlin.math.PI
-import kotlin.math.exp
-import kotlin.math.sign
-import kotlin.math.sin
+import android.media.MediaPlayer
+import android.media.SoundPool
 
-/** The game's sounds, synthesised at start-up so the app needs no audio files. */
-class Sfx {
-    private val tracks: Map<SoundCue, AudioTrack?> = mapOf(
-        SoundCue.GOOD to build(good()),
-        SoundCue.NEUTRAL to build(neutral()),
-        SoundCue.BAD to build(bad()),
-        SoundCue.ASSASSIN to build(assassin()),
-        SoundCue.WIN to build(win()),
-    )
+private fun SoundCue.res(): Int = when (this) {
+    SoundCue.GOOD -> R.raw.sfx_good
+    SoundCue.NEUTRAL -> R.raw.sfx_neutral
+    SoundCue.BAD -> R.raw.sfx_bad
+    SoundCue.ASSASSIN -> R.raw.sfx_assassin
+    SoundCue.WIN -> R.raw.sfx_win
+}
+
+private val gameAudio: AudioAttributes = AudioAttributes.Builder()
+    .setUsage(AudioAttributes.USAGE_GAME)
+    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+    .build()
+
+/** The game's sound effects (made with ElevenLabs, see tools/audio.json), loaded once and played from memory. */
+class Sfx(context: Context) {
+    private val pool = SoundPool.Builder().setMaxStreams(4).setAudioAttributes(gameAudio).build()
+    private val ids = SoundCue.entries.associateWith { pool.load(context, it.res(), 1) }
 
     fun play(cue: SoundCue) {
-        val track = tracks[cue] ?: return
-        try {
-            track.stop()
-            track.reloadStaticData()
-            track.play()
-        } catch (_: IllegalStateException) {
-            // a sound that fails to play must never break the game
+        // a sound that fails to load or play must never break the game
+        ids[cue]?.let { pool.play(it, 1f, 1f, 1, 0, 1f) }
+    }
+
+    fun release() = pool.release()
+}
+
+/** The background music: one looping track at a time, faded in and out when it changes. */
+class Music(private val context: Context) {
+    enum class Track(val res: Int) { LOBBY(R.raw.music_lobby), GAME(R.raw.music_game) }
+
+    private var player: MediaPlayer? = null
+    private var current: Track? = null
+    private var wanted: Track? = null
+    private var enabled = true
+    private var paused = false
+
+    /** The track for this moment of the game, or null for silence. */
+    fun play(track: Track?) {
+        wanted = track
+        apply()
+    }
+
+    fun setEnabled(on: Boolean) {
+        enabled = on
+        apply()
+    }
+
+    /** The app went to the background. */
+    fun pause() {
+        paused = true
+        player?.takeIf { it.isPlaying }?.pause()
+    }
+
+    fun resume() {
+        paused = false
+        val p = player
+        if (p != null) p.start() else apply()
+    }
+
+    fun release() {
+        player?.release()
+        player = null
+        current = null
+    }
+
+    private fun apply() {
+        val target = wanted.takeIf { enabled }
+        if (target == current && (player != null || target == null)) return
+        player?.let { fadeOut(it) }
+        player = null
+        current = target
+        if (target == null || paused) return
+        player = try {
+            MediaPlayer.create(context, target.res, gameAudio, 0)?.apply {
+                isLooping = true
+                setVolume(0f, 0f)
+                start()
+            }
+        } catch (_: Exception) {
+            null
+        }
+        player?.let { fadeIn(it) }
+    }
+
+    private fun fade(p: MediaPlayer, from: Float, to: Float, ms: Long, end: (() -> Unit)? = null) {
+        ValueAnimator.ofFloat(from, to).apply {
+            duration = ms
+            addUpdateListener { v -> runCatching { (v.animatedValue as Float).let { p.setVolume(it, it) } } }
+            if (end != null) addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) = end()
+            })
+            start()
         }
     }
 
-    fun release() = tracks.values.forEach { it?.release() }
+    private fun fadeIn(p: MediaPlayer) = fade(p, 0f, VOLUME, 900)
 
-    private fun build(samples: ShortArray): AudioTrack? = try {
-        AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(RATE)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-            )
-            .setBufferSizeInBytes(samples.size * 2)
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .build()
-            .also { it.write(samples, 0, samples.size) }
-    } catch (_: Exception) {
-        null
-    }
+    private fun fadeOut(p: MediaPlayer) = fade(p, VOLUME, 0f, 500) { runCatching { p.release() } }
 
     private companion object {
-        const val RATE = 22_050
-
-        /** Your own agent: three rising notes. */
-        fun good() = tone(1047.0, ms = 90, volume = 0.6) + tone(1319.0, ms = 90, volume = 0.6) + tone(1568.0, ms = 220, volume = 0.6)
-
-        /** A bystander: one soft, low, falling note. */
-        fun neutral() = tone(330.0, 240.0, ms = 260, volume = 0.6)
-
-        /** The other team's agent: two harsh low pulses. */
-        fun bad() = tone(150.0, ms = 170, volume = 0.55, square = true, decay = false) +
-            ShortArray(RATE * 60 / 1000) +
-            tone(120.0, ms = 230, volume = 0.55, square = true, decay = false)
-
-        /** The assassin: a long dark slide down, with a low rumble underneath. */
-        fun assassin(): ShortArray {
-            val slide = tone(520.0, 55.0, ms = 1000, volume = 0.55, decay = false)
-            val rumble = tone(70.0, 45.0, ms = 1000, volume = 0.45, square = true, decay = false)
-            return ShortArray(slide.size) { ((slide[it] + rumble[it]) / 2).toShort() }
-        }
-
-        /** A win: a short rising fanfare. */
-        fun win() = tone(523.0, ms = 120, volume = 0.6) + tone(659.0, ms = 120, volume = 0.6) +
-            tone(784.0, ms = 120, volume = 0.6) + tone(1047.0, ms = 450, volume = 0.65)
-
-        /** A note, optionally sliding from [f0] to [f1], with a short attack and release to avoid clicks. */
-        fun tone(f0: Double, f1: Double = f0, ms: Int, volume: Double, square: Boolean = false, decay: Boolean = true): ShortArray {
-            val n = RATE * ms / 1000
-            val edge = RATE / 200 // 5 ms
-            var phase = 0.0
-            return ShortArray(n) { i ->
-                phase += 2 * PI * (f0 + (f1 - f0) * i / n) / RATE
-                val wave = if (square) sign(sin(phase)) else sin(phase)
-                val env = (if (decay) exp(-3.5 * i / n) else 1.0) * minOf(1.0, i / edge.toDouble()) * minOf(1.0, (n - i) / edge.toDouble())
-                (wave * env * volume * Short.MAX_VALUE).toInt().toShort()
-            }
-        }
+        const val VOLUME = 0.55f
     }
 }

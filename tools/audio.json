@@ -1,0 +1,34 @@
+{
+  "sfx": {
+    "good": {
+      "prompt": "A secret agent card turned over correctly: a crisp card flip followed by a bright rising three-note vibraphone chime. Positive.",
+      "seconds": 1.3
+    },
+    "neutral": {
+      "prompt": "A card turned over to reveal an innocent bystander: a card flip followed by a soft, flat wooden knock. Neutral, a bit anticlimactic.",
+      "seconds": 1.0
+    },
+    "bad": {
+      "prompt": "A card turned over that helps the other team: a card flip followed by a short descending muted-trumpet 'uh-oh'.",
+      "seconds": 1.4
+    },
+    "assassin": {
+      "prompt": "The assassin is revealed: a single gunshot-free dramatic spy sting, a loud low brass stab with a cymbal crash and a dark reverb tail. Game over.",
+      "seconds": 2.5
+    },
+    "win": {
+      "prompt": "A cool spy-movie victory fanfare: a short brassy jazz hit with a surf guitar flourish and a small crowd cheering.",
+      "seconds": 3.5
+    }
+  },
+  "music": {
+    "lobby": {
+      "prompt": "Cool 1960s secret agent lounge music for a game menu: walking upright bass, brushed drums, vibraphone and a twangy guitar riff. Stylish and playful, steady mid tempo, no big build-ups or endings, instrumental.",
+      "seconds": 75
+    },
+    "game": {
+      "prompt": "Laid-back spy jazz underscore for a team thinking hard about word clues: soft vibraphone, muted trumpet, brushed snare and upright bass. Curious and a little suspenseful, quiet enough to talk over, steady, no climax, instrumental.",
+      "seconds": 75
+    }
+  }
+}

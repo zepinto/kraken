@@ -7,6 +7,10 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +35,7 @@ data class FoundHost(val id: String, val name: String)
 data class UiState(
     val lang: Lang,
     val screen: Screen = Screen.HOME,
+    val musicOn: Boolean = true,
     val hasSavedGame: Boolean = false,
     val hasSavedDuet: Boolean = false,
 
@@ -66,7 +71,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val appContext = app.applicationContext
     private val prefs = app.getSharedPreferences("codenames", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
-    private val sfx = Sfx()
+    private val sfx = Sfx(app)
+    private val music = Music(app)
     private val pickers = HashMap<Lang, WordPicker>()
 
     /** What this phone is called to the other one. The random suffix keeps two phones of the same model apart. */
@@ -78,8 +84,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun ownLanguage() = Lang.fromCode(prefs.getString(KEY_LANG, null)) ?: Lang.deviceDefault()
 
-    private val _state = MutableStateFlow(UiState(lang = ownLanguage(), hasSavedGame = loadSaved() != null, hasSavedDuet = loadSavedDuet() != null))
+    private val _state = MutableStateFlow(
+        UiState(lang = ownLanguage(), hasSavedGame = loadSaved() != null, hasSavedDuet = loadSavedDuet() != null, musicOn = prefs.getBoolean(KEY_MUSIC, true))
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    init {
+        music.setEnabled(_state.value.musicOn)
+        viewModelScope.launch {
+            _state.map { trackFor(it) }.distinctUntilChanged().collect { music.play(it) }
+        }
+    }
+
+    /**
+     * The lobby tune in the menus. During a game only one phone plays music, so the two phones never play the same
+     * tune out of step: the table phone (the spymaster's stays quiet), or in Duet the phone that created the game.
+     */
+    private fun trackFor(st: UiState): Music.Track? = when (st.screen) {
+        Screen.HOME, Screen.JOIN, Screen.DUET_HOME -> Music.Track.LOBBY
+        Screen.TABLE -> Music.Track.GAME
+        Screen.DUET -> if (st.duetHost) Music.Track.GAME else null
+        Screen.HOST -> null
+    }
+
+    fun setMusic(on: Boolean) {
+        _state.update { it.copy(musicOn = on) }
+        music.setEnabled(on)
+        prefs.edit().putBoolean(KEY_MUSIC, on).apply()
+    }
+
+    fun onPause() = music.pause()
+
+    fun onResume() = music.resume()
 
     fun setLanguage(lang: Lang) {
         _state.update { it.copy(lang = lang) }
@@ -562,10 +598,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         stopHostLinks()
         stopClient()
         sfx.release()
+        music.release()
     }
 
     private companion object {
         const val KEY_LANG = "lang"
+        const val KEY_MUSIC = "music"
         const val KEY_GAME = "game"
         const val KEY_DUET = "duet_game"
         const val KEY_PIN = "pin"

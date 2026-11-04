@@ -133,6 +133,7 @@ data class Strings(
     val cancel: String,
     val back: String,
     val rulesButton: String,
+    val musicButton: String,
     val rulesTitle: String,
     val rulesSections: List<RulesSection>,
 )
@@ -261,6 +262,7 @@ val English = Strings(
     cancel = "Cancel",
     back = "Back",
     rulesButton = "Rules",
+    musicButton = "Music on or off",
     rulesTitle = "Rules",
     rulesSections = listOf(
         RulesSection("🎯", "The goal", listOf(
@@ -422,6 +424,7 @@ val Portuguese = Strings(
     cancel = "Cancelar",
     back = "Voltar",
     rulesButton = "Regras",
+    musicButton = "Ligar ou desligar a música",
     rulesTitle = "Regras",
     rulesSections = listOf(
         RulesSection("🎯", "O objetivo", listOf(
@@ -583,6 +586,7 @@ val Spanish = Strings(
     cancel = "Cancelar",
     back = "Volver",
     rulesButton = "Reglas",
+    musicButton = "Activar o desactivar la música",
     rulesTitle = "Reglas",
     rulesSections = listOf(
         RulesSection("🎯", "El objetivo", listOf(

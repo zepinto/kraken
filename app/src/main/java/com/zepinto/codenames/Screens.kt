@@ -93,6 +93,17 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
         if (r.values.all { it }) vm.startNearbySearch() else vm.nearbyDeniedOnTable()
     }
 
+    // the music stops while the app is in the background
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) vm.onPause()
+            if (event == Lifecycle.Event.ON_RESUME) vm.onResume()
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+
     BackHandler(enabled = state.screen != Screen.HOME) {
         when (state.screen) {
             Screen.JOIN -> vm.leaveTable()
@@ -117,6 +128,7 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
                     onResumeDuet = vm::resumeDuet,
                     onLanguage = vm::setLanguage,
                     onRules = { rulesDuet = false; showRules = true },
+                    onMusic = { vm.setMusic(!state.musicOn) },
                 )
                 Screen.HOST -> HostScreen(
                     state = state,
@@ -219,6 +231,24 @@ private fun Logo(modifier: Modifier = Modifier) {
                 Color.White, 180f, 180f, true,
                 Offset(center.x - w * 0.26f, center.y + h * 0.02f), Size(w * 0.52f, h * 0.36f),
             )
+        }
+    }
+}
+
+/** Music on or off. The sound effects stay on: they are part of the game. */
+@Composable
+internal fun MusicButton(on: Boolean, label: String, tint: Color, onClick: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = tint.copy(alpha = if (on) 0.2f else 0.06f),
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .semantics { contentDescription = label }
+            .clickable(onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(if (on) "🎵" else "🔇", fontSize = 20.sp)
         }
     }
 }
@@ -356,6 +386,7 @@ private fun HomeScreen(
     onResumeDuet: () -> Unit,
     onLanguage: (Lang) -> Unit,
     onRules: () -> Unit,
+    onMusic: () -> Unit,
 ) {
     val t = LocalStrings.current
     Column(
@@ -374,6 +405,8 @@ private fun HomeScreen(
                 Text("CODENAMES", fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 Text(t.tagline, color = Palette.Lilac, fontSize = 14.sp)
             }
+            MusicButton(state.musicOn, t.musicButton, Palette.Aqua, onMusic)
+            Spacer(Modifier.width(8.dp))
             HelpButton(onRules)
         }
         Spacer(Modifier.height(16.dp))
