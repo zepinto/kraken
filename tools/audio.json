@@ -1,33 +1,33 @@
 {
   "sfx": {
     "good": {
-      "prompt": "A secret agent card turned over correctly: a crisp card flip followed by a bright rising three-note vibraphone chime. Positive.",
+      "prompt": "Pirate treasure found: a wooden chest lid creaking open followed by a bright shimmer of gold coins and a rising three-note glockenspiel chime. Positive.",
       "seconds": 1.3
     },
     "neutral": {
-      "prompt": "A card turned over to reveal an innocent bystander: a card flip followed by a soft, flat wooden knock. Neutral, a bit anticlimactic.",
+      "prompt": "Nothing but empty sea: a single soft water splash and a gentle wave lapping against a wooden hull. Neutral, a bit anticlimactic.",
       "seconds": 1.0
     },
     "bad": {
-      "prompt": "A card turned over that helps the other team: a card flip followed by a short descending muted-trumpet 'uh-oh'.",
+      "prompt": "The other pirate crew's treasure was uncovered: a short cartoon 'uh-oh' on a tuba, two descending notes, with a small coin clink.",
       "seconds": 1.4
     },
-    "assassin": {
-      "prompt": "The assassin is revealed: a single gunshot-free dramatic spy sting, a loud low brass stab with a cymbal crash and a dark reverb tail. Game over.",
+    "kraken": {
+      "prompt": "A huge sea monster rises from the deep: a deep rumbling roar, a big wave crashing against a ship and creaking timber, with a low brass stab. Game over. Dramatic but not gory.",
       "seconds": 2.5
     },
     "win": {
-      "prompt": "A cool spy-movie victory fanfare: a short brassy jazz hit with a surf guitar flourish and a small crowd cheering.",
+      "prompt": "A rousing pirate victory fanfare: a short jolly accordion and fiddle flourish, a ship's bell ringing twice and a small crew cheering 'hooray'.",
       "seconds": 3.5
     }
   },
   "music": {
     "lobby": {
-      "prompt": "Cool 1960s secret agent lounge music for a game menu: walking upright bass, brushed drums, vibraphone and a twangy guitar riff. Stylish and playful, steady mid tempo, no big build-ups or endings, instrumental.",
+      "prompt": "A jolly sea shanty for a game menu: accordion, fiddle, stomping boots and a wooden ship creaking gently, light hand claps. Playful and bouncy, steady mid tempo, no big build-ups or endings, instrumental.",
       "seconds": 75
     },
     "game": {
-      "prompt": "Laid-back spy jazz underscore for a team thinking hard about word clues: soft vibraphone, muted trumpet, brushed snare and upright bass. Curious and a little suspenseful, quiet enough to talk over, steady, no climax, instrumental.",
+      "prompt": "Calm nautical underscore for a team thinking hard about word clues: soft concertina, plucked double bass, gentle waves and a creaking hull. Curious and a little mysterious, quiet enough to talk over, steady, no climax, instrumental.",
       "seconds": 75
     }
   }

@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.heightIn
@@ -24,22 +24,22 @@ object Palette {
     val Red = Color(0xFFD6363B)
     val Blue = Color(0xFF2F6BE0)
     val Sand = Color(0xFFC9B58A)
-    val Assassin = Color(0xFF15151A)
+    val Kraken = Color(0xFF15151A)
     val Paper = Color(0xFFF1E9D7)
     val PaperText = Color(0xFF2B2438)
     val Sun = Color(0xFFFFD166)
     val Aqua = Color(0xFF5CE1E6)
     val Mint = Color(0xFF6EE7B7)
     val Lilac = Color(0xFFB69CFF)
-    val Agent = Color(0xFF2E9E5B)
-    val AgentDeep = Color(0xFF1B6B3E)
+    val Treasure = Color(0xFF2E9E5B)
+    val TreasureDeep = Color(0xFF1B6B3E)
 
     fun team(team: Team) = if (team == Team.RED) Red else Blue
     fun card(type: CardType) = when (type) {
         CardType.RED -> Red
         CardType.BLUE -> Blue
         CardType.NEUTRAL -> Sand
-        CardType.ASSASSIN -> Assassin
+        CardType.KRAKEN -> Kraken
     }
 }
 

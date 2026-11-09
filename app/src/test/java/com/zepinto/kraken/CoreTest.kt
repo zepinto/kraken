@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import java.io.File
 import kotlin.random.Random
@@ -11,12 +11,12 @@ import org.junit.Test
 
 private val WORDS = (1..25).map { "word$it" }
 
-/** A game whose key is known: red agents first, then blue, then neutrals, assassin last. */
+/** A game whose key is known: red treasures first, then blue, then neutrals, kraken last. */
 private fun fixedGame(start: Team = Team.RED): GameState {
     val g = Engine.newGame(Lang.EN, WORDS, start, 7L, Random(1))
     val first = CardType.of(start)
     val second = CardType.of(start.other)
-    val key = List(9) { first } + List(8) { second } + List(7) { CardType.NEUTRAL } + CardType.ASSASSIN
+    val key = List(9) { first } + List(8) { second } + List(7) { CardType.NEUTRAL } + CardType.KRAKEN
     return g.copy(key = key)
 }
 
@@ -28,7 +28,7 @@ class EngineTest {
             assertEquals(9, g.key.count { it == CardType.of(start) })
             assertEquals(8, g.key.count { it == CardType.of(start.other) })
             assertEquals(7, g.key.count { it == CardType.NEUTRAL })
-            assertEquals(1, g.key.count { it == CardType.ASSASSIN })
+            assertEquals(1, g.key.count { it == CardType.KRAKEN })
             assertEquals(start, g.turn)
             assertEquals(0, g.revealedCount)
             assertEquals(9, g.remaining(start))
@@ -37,7 +37,7 @@ class EngineTest {
     }
 
     @Test
-    fun ownAgentKeepsTheTurnGoing() {
+    fun ownTreasureKeepsTheTurnGoing() {
         val g = Engine.reveal(fixedGame(), 0)
         assertTrue(g.revealed[0])
         assertEquals(Team.RED, g.turn)
@@ -46,13 +46,13 @@ class EngineTest {
     }
 
     @Test
-    fun bystanderEndsTheTurn() {
+    fun emptySeaEndsTheTurn() {
         val g = Engine.reveal(fixedGame(), 20)
         assertEquals(Team.BLUE, g.turn)
     }
 
     @Test
-    fun theOtherTeamsAgentEndsTheTurnAndCountsForThem() {
+    fun theOtherTeamsTreasureEndsTheTurnAndCountsForThem() {
         val g = Engine.reveal(fixedGame(), 10) // a blue card, red guessing
         assertEquals(Team.BLUE, g.turn)
         assertEquals(7, g.remaining(Team.BLUE))
@@ -60,27 +60,27 @@ class EngineTest {
     }
 
     @Test
-    fun theAssassinLosesTheGameForTheTeamThatPickedIt() {
+    fun theKrakenLosesTheGameForTheTeamThatPickedIt() {
         val g = Engine.reveal(fixedGame(), 24)
         assertEquals(Team.BLUE, g.winner)
-        assertEquals(WinReason.ASSASSIN, g.winReason)
+        assertEquals(WinReason.KRAKEN, g.winReason)
         // and the same when blue picks it
         val blueTurn = Engine.endTurn(fixedGame())
         assertEquals(Team.RED, Engine.reveal(blueTurn, 24).winner)
     }
 
     @Test
-    fun uncoveringAllOfYourAgentsWins() {
+    fun uncoveringAllOfYourTreasuresWins() {
         var g = fixedGame()
         for (i in 0 until 9) g = Engine.reveal(g, i)
         assertEquals(Team.RED, g.winner)
-        assertEquals(WinReason.AGENTS, g.winReason)
+        assertEquals(WinReason.TREASURES, g.winReason)
     }
 
     @Test
-    fun theOtherTeamWinsIfYouUncoverTheirLastAgent() {
+    fun theOtherTeamWinsIfYouUncoverTheirLastTreasure() {
         var g = Engine.endTurn(fixedGame()) // blue to guess
-        for (i in 9 until 16) g = Engine.reveal(g, i) // 7 blue agents, blue keeps guessing
+        for (i in 9 until 16) g = Engine.reveal(g, i) // 7 blue treasures, blue keeps guessing
         assertEquals(Team.BLUE, g.turn)
         g = Engine.endTurn(g) // red to guess
         g = Engine.reveal(g, 16)
@@ -106,11 +106,11 @@ class EngineTest {
     }
 
     @Test
-    fun theTurnGoesOnForAsLongAsTheTeamFindsItsOwnAgents() {
+    fun theTurnGoesOnForAsLongAsTheTeamFindsItsOwnTreasures() {
         var g = fixedGame()
         for (i in 0 until 8) {
             g = Engine.reveal(g, i)
-            assertEquals("after agent ${i + 1}", Team.RED, g.turn)
+            assertEquals("after treasure ${i + 1}", Team.RED, g.turn)
         }
         assertEquals(1, g.remaining(Team.RED))
         // the team stops when it wants to
@@ -129,7 +129,7 @@ class EngineTest {
         var g = fixedGame()
         val seen = mutableListOf(g.seq)
         g = Engine.reveal(g, 0); seen += g.seq
-        g = Engine.reveal(g, 20); seen += g.seq // a bystander: the turn passes
+        g = Engine.reveal(g, 20); seen += g.seq // an empty sea: the turn passes
         g = Engine.endTurn(g); seen += g.seq
         assertEquals(seen.sorted().distinct(), seen)
     }
@@ -156,16 +156,16 @@ class ProtocolTest {
 
     @Test
     fun theViewSurvivesAJsonRoundTrip() {
-        var g = Engine.reveal(fixedGame(Team.BLUE), 2) // own agent: the turn goes on
+        var g = Engine.reveal(fixedGame(Team.BLUE), 2) // own treasure: the turn goes on
         var back = (Protocol.parse(Protocol.state(g)) as Message.State).view
         assertEquals(BoardView.from(g), back)
         assertEquals(Team.BLUE, back.turn)
 
-        g = Engine.reveal(g, 12) // blue picks a red agent: the turn passes
+        g = Engine.reveal(g, 12) // blue picks a red treasure: the turn passes
         back = (Protocol.parse(Protocol.state(g)) as Message.State).view
         assertEquals(BoardView.from(g), back)
         assertEquals(Team.RED, back.turn)
-        // key of fixedGame(BLUE): 9 blue agents first, then 8 red; one of each was uncovered
+        // key of fixedGame(BLUE): 9 blue treasures first, then 8 red; one of each was uncovered
         assertEquals(7, back.remainingRed)
         assertEquals(8, back.remainingBlue)
     }
@@ -208,7 +208,7 @@ class SoundCueTest {
         assertEquals(SoundCue.GOOD, cueFor(before, snap(1, LastReveal(0, CardType.RED, Team.RED))))
         assertEquals(SoundCue.BAD, cueFor(before, snap(1, LastReveal(0, CardType.BLUE, Team.RED))))
         assertEquals(SoundCue.NEUTRAL, cueFor(before, snap(1, LastReveal(0, CardType.NEUTRAL, Team.RED))))
-        assertEquals(SoundCue.ASSASSIN, cueFor(before, snap(1, LastReveal(0, CardType.ASSASSIN, Team.RED), Team.BLUE)))
+        assertEquals(SoundCue.KRAKEN, cueFor(before, snap(1, LastReveal(0, CardType.KRAKEN, Team.RED), Team.BLUE)))
         assertEquals(SoundCue.WIN, cueFor(before, snap(1, LastReveal(0, CardType.RED, Team.RED), Team.RED)))
     }
 
@@ -359,7 +359,7 @@ class StringsTest {
             assertTrue(t.pairTitle("Ana").contains("Ana"))
             assertTrue(t.pairText("4821").contains("4821"))
             assertTrue(t.revealWord("sea").contains("sea"))
-            assertTrue(t.agentsLabel.isNotBlank())
+            assertTrue(t.treasuresLabel.isNotBlank())
             assertTrue(t.pairingCode("4821").contains("4821"))
         }
         assertEquals(Lang.PT, Lang.fromCode("pt"))

@@ -210,7 +210,6 @@ monje
 enfermero
 pintor
 piloto
-pirata
 fontanero
 poeta
 marinero
@@ -238,7 +237,6 @@ zombi
 robot
 ninja
 faraón
-tesoro
 corona
 poción
 hechizo

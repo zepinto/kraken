@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "codenames"
+rootProject.name = "kraken"
 include(":app")

@@ -1,7 +1,7 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 /**
- * How the two phones talk. The spymaster phone listens ([HostLink]) and the table phone connects ([ClientLink]).
+ * How the two phones talk. The captain phone listens ([HostLink]) and the table phone connects ([ClientLink]).
  * There are two transports behind these interfaces: Nearby Connections and a plain socket on the same Wi-Fi.
  * Callbacks may arrive on any thread; the view model moves them to the main thread.
  */
@@ -25,7 +25,7 @@ interface HostListener {
 enum class LinkError { UNREACHABLE, DENIED, OTHER }
 
 interface ClientLink {
-    /** Start looking for spymaster phones (Nearby) or just register the listener (Wi-Fi). */
+    /** Start looking for captain phones (Nearby) or just register the listener (Wi-Fi). */
     fun start(listener: ClientListener)
 
     /** [target] is a Nearby endpoint id, or "address:port" for Wi-Fi. [pin] is only used by Wi-Fi. */

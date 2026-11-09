@@ -3,8 +3,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:pivotX="54" android:pivotY="54" android:rotation="-12">
-        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-            android:pathData="M36,30h36a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-36a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z M54,44m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0 M42,66a12,10 0,0 1,24 0z" />
-    </group>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M43,57 C36,64 30,64 30,72 C30,78 36,79 38,75 M48,61 C46,69 41,72 42,78 C43,82 47,81 47,78 M54,62 C54,70 57,74 54,80 M60,61 C62,69 67,72 66,78 C65,82 61,81 61,78 M65,57 C72,64 78,64 78,72 C78,78 72,79 70,75" />
+    <!-- head with the eyes cut out -->
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M54,27 C66,27 72,36 72,46 C72,56 65,62 54,62 C43,62 36,56 36,46 C36,36 42,27 54,27 Z M47,48m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0 M61,48m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
 </vector>

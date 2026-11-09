@@ -211,7 +211,6 @@ monge
 enfermeiro
 pintor
 piloto
-pirata
 canalizador
 poeta
 marinheiro
@@ -239,7 +238,6 @@ múmia
 robot
 ninja
 faraó
-tesouro
 coroa
 poção
 feitiço

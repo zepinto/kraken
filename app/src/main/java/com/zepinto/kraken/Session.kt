@@ -1,7 +1,7 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 /**
- * The spymaster phone's side of the conversation. It owns the game, applies what the table phone asks for
+ * The captain phone's side of the conversation. It owns the game, applies what the table phone asks for
  * and sends the new public state back. Free of Android so it can be unit tested.
  */
 class HostSession(
@@ -24,7 +24,7 @@ class HostSession(
         }
     }
 
-    /** The spymaster phone's own buttons act on the game like the table phone's do. */
+    /** The captain phone's own buttons act on the game like the table phone's do. */
     fun endTurn() = apply(Engine.endTurn(game))
 
     fun startGame(newGame: GameState) {

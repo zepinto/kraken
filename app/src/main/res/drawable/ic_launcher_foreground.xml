@@ -3,13 +3,28 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- two tilted cards: blue behind, red in front -->
-    <group android:pivotX="54" android:pivotY="54" android:rotation="14">
-        <path android:fillColor="#FF3E7BFA" android:pathData="M36,30h36a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-36a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z" />
+    <!-- the kraken: a dome head and five curling tentacles, inside the 66dp safe zone -->
+    <group android:name="tentacles">
+        <path android:strokeColor="#FF8A5CF6" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M43,57 C36,64 30,64 30,72 C30,78 36,79 38,75" />
+        <path android:strokeColor="#FF8A5CF6" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M48,61 C46,69 41,72 42,78 C43,82 47,81 47,78" />
+        <path android:strokeColor="#FF8A5CF6" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M54,62 C54,70 57,74 54,80" />
+        <path android:strokeColor="#FF8A5CF6" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M60,61 C62,69 67,72 66,78 C65,82 61,81 61,78" />
+        <path android:strokeColor="#FF8A5CF6" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M65,57 C72,64 78,64 78,72 C78,78 72,79 70,75" />
     </group>
-    <group android:pivotX="54" android:pivotY="54" android:rotation="-12">
-        <path android:fillColor="#FFE5484D" android:pathData="M36,30h36a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-36a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M54,44m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M42,66a12,10 0,0 1,24 0z" />
-    </group>
+    <!-- head -->
+    <path android:fillColor="#FFA67CFF"
+        android:pathData="M54,27 C66,27 72,36 72,46 C72,56 65,62 54,62 C43,62 36,56 36,46 C36,36 42,27 54,27 Z" />
+    <!-- spots -->
+    <path android:fillColor="#FF8A5CF6" android:pathData="M47,34m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+    <path android:fillColor="#FF8A5CF6" android:pathData="M60,32m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+    <!-- eyes -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M47,48m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M61,48m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path android:fillColor="#FF0B1030" android:pathData="M48,49m-2.4,0a2.4,2.4 0,1 1,4.8 0a2.4,2.4 0,1 1,-4.8 0" />
+    <path android:fillColor="#FF0B1030" android:pathData="M60,49m-2.4,0a2.4,2.4 0,1 1,4.8 0a2.4,2.4 0,1 1,-4.8 0" />
 </vector>

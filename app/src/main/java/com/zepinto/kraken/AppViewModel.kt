@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import android.app.Application
 import android.content.Context
@@ -17,11 +17,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-enum class Screen { HOME, HOST, JOIN, TABLE, DUET_HOME, DUET }
+enum class Screen { HOME, HOST, JOIN, TABLE, CASTAWAYS_HOME, CASTAWAYS }
 enum class ClientStatus { IDLE, SEARCHING, CONNECTING, CONNECTED, LOST }
 enum class JoinMessage { FAILED, WRONG_PIN, LOCKED, BAD_ADDRESS, NEARBY }
 
-/** A phone asking to connect over Nearby; the spymaster compares [digits] with the other phone and accepts or rejects. */
+/** A phone asking to connect over Nearby; the captain compares [digits] with the other phone and accepts or rejects. */
 class PairingRequest(
     val peerId: String,
     val peerName: String,
@@ -37,15 +37,15 @@ data class UiState(
     val screen: Screen = Screen.HOME,
     val musicOn: Boolean = true,
     val hasSavedGame: Boolean = false,
-    val hasSavedDuet: Boolean = false,
+    val hasSavedCastaways: Boolean = false,
 
-    // Duet: this phone's view of the game, and whether this phone created it (and so holds both keys)
-    val duet: DuetView? = null,
-    val duetHost: Boolean = false,
-    /** The join screen was opened from the Duet menu, so Back returns there. */
-    val joinFromDuet: Boolean = false,
+    // Castaways: this phone's view of the game, and whether this phone created it (and so holds both keys)
+    val castaways: CastawaysView? = null,
+    val castawaysHost: Boolean = false,
+    /** The join screen was opened from the Castaways menu, so Back returns there. */
+    val joinFromCastaways: Boolean = false,
 
-    // spymaster phone
+    // captain phone
     val game: GameState? = null,
     val tableConnected: Boolean = false,
     val pairing: PairingRequest? = null,
@@ -63,13 +63,13 @@ data class UiState(
 )
 
 /**
- * Wires the game to the two links. The spymaster phone owns the game and answers the table phone;
+ * Wires the game to the two links. The captain phone owns the game and answers the table phone;
  * the table phone only shows what it is told and sends guesses. Everything here runs on the main thread:
  * link callbacks are posted to it first.
  */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val appContext = app.applicationContext
-    private val prefs = app.getSharedPreferences("codenames", Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences("kraken", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
     private val sfx = Sfx(app)
     private val music = Music(app)
@@ -85,7 +85,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun ownLanguage() = Lang.fromCode(prefs.getString(KEY_LANG, null)) ?: Lang.deviceDefault()
 
     private val _state = MutableStateFlow(
-        UiState(lang = ownLanguage(), hasSavedGame = loadSaved() != null, hasSavedDuet = loadSavedDuet() != null, musicOn = prefs.getBoolean(KEY_MUSIC, true))
+        UiState(lang = ownLanguage(), hasSavedGame = loadSaved() != null, hasSavedCastaways = loadSavedCastaways() != null, musicOn = prefs.getBoolean(KEY_MUSIC, true))
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
@@ -98,12 +98,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * The lobby tune in the menus. During a game only one phone plays music, so the two phones never play the same
-     * tune out of step: the table phone (the spymaster's stays quiet), or in Duet the phone that created the game.
+     * tune out of step: the table phone (the captain's stays quiet), or in Castaways the phone that created the game.
      */
     private fun trackFor(st: UiState): Music.Track? = when (st.screen) {
-        Screen.HOME, Screen.JOIN, Screen.DUET_HOME -> Music.Track.LOBBY
+        Screen.HOME, Screen.JOIN, Screen.CASTAWAYS_HOME -> Music.Track.LOBBY
         Screen.TABLE -> Music.Track.GAME
-        Screen.DUET -> if (st.duetHost) Music.Track.GAME else null
+        Screen.CASTAWAYS -> if (st.castawaysHost) Music.Track.GAME else null
         Screen.HOST -> null
     }
 
@@ -122,7 +122,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putString(KEY_LANG, lang.code).apply()
     }
 
-    // ================= spymaster phone =================
+    // ================= captain phone =================
 
     private var session: HostSession? = null
     private var lan: LanHostLink? = null
@@ -132,8 +132,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Phones already accepted in this session, so one that drops out and comes back is not asked about again. */
     private val trusted = HashSet<String>()
     private var hostSnapshot: Snapshot? = null
-    private var duetSession: DuetHostSession? = null
-    private var duetSnapshot: DuetSnapshot? = null
+    private var castawaysSession: CastawaysHostSession? = null
+    private var castawaysSnapshot: CastawaysSnapshot? = null
 
     private fun hostSend(text: String) {
         lan?.send(text)
@@ -153,12 +153,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             peers += peerId
             _state.update { it.copy(tableConnected = true, pairing = null) }
             session?.let { s -> hostSend(Protocol.state(s.game)) }
-            duetSession?.let { d -> hostSend(d.guestState()) }
+            castawaysSession?.let { d -> hostSend(d.guestState()) }
         }
 
         override fun onMessage(peerId: String, text: String) = post {
             session?.onMessage(text) { reply -> hostSend(reply) }
-            duetSession?.onMessage(text) { reply -> hostSend(reply) }
+            castawaysSession?.onMessage(text) { reply -> hostSend(reply) }
         }
 
         override fun onDisconnected(peerId: String) = post {
@@ -173,7 +173,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         override fun onError(message: String) = post {
             if (message.startsWith("Nearby")) {
-                // advertising did not start: say so, and let the spymaster try again
+                // advertising did not start: say so, and let the captain try again
                 nearbyHost?.stop()
                 nearbyHost = null
                 _state.update { it.copy(nearbyActive = false, nearbyProblem = true) }
@@ -197,7 +197,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun startHosting(game: GameState, pin: String) {
         stopHostLinks()
-        duetSession = null
+        castawaysSession = null
         session = HostSession(
             game,
             broadcast = { text -> lan?.send(text); nearbyHost?.send(text) },
@@ -226,7 +226,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Called once the permissions are granted. */
     fun startNearbyHost() {
-        if (nearbyHost != null || (session == null && duetSession == null)) return
+        if (nearbyHost != null || (session == null && castawaysSession == null)) return
         val link = NearbyHostLink(appContext, deviceName)
         nearbyHost = link
         link.start(hostListener)
@@ -265,52 +265,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun leaveHost() {
         stopHostLinks()
         session = null
-        duetSession = null
+        castawaysSession = null
         _state.update {
             it.copy(
-                screen = Screen.HOME, game = null, duet = null, duetHost = false, tableConnected = false, pairing = null,
-                hasSavedGame = loadSaved() != null, hasSavedDuet = loadSavedDuet() != null,
+                screen = Screen.HOME, game = null, castaways = null, castawaysHost = false, tableConnected = false, pairing = null,
+                hasSavedGame = loadSaved() != null, hasSavedCastaways = loadSavedCastaways() != null,
             )
         }
     }
 
-    // ================= Duet: the phone that creates the game =================
+    // ================= Castaways: the phone that creates the game =================
 
-    fun openDuetHome() {
-        _state.update { it.copy(screen = Screen.DUET_HOME, hasSavedDuet = loadSavedDuet() != null) }
+    fun openCastawaysHome() {
+        _state.update { it.copy(screen = Screen.CASTAWAYS_HOME, hasSavedCastaways = loadSavedCastaways() != null) }
     }
 
-    fun leaveDuetHome() {
+    fun leaveCastawaysHome() {
         _state.update { it.copy(screen = Screen.HOME) }
     }
 
-    fun createDuet(turns: Int) {
+    fun createCastaways(turns: Int) {
         trusted.clear()
-        startDuetHosting(newDuetState(turns), randomPin())
+        startCastawaysHosting(newCastawaysState(turns), randomPin())
     }
 
-    fun resumeDuet() {
-        val game = loadSavedDuet() ?: return
+    fun resumeCastaways() {
+        val game = loadSavedCastaways() ?: return
         _state.update { it.copy(lang = game.lang) }
-        startDuetHosting(game, prefs.getString(KEY_PIN, null) ?: randomPin())
+        startCastawaysHosting(game, prefs.getString(KEY_PIN, null) ?: randomPin())
     }
 
-    private fun startDuetHosting(game: DuetState, pin: String) {
+    private fun startCastawaysHosting(game: CastawaysState, pin: String) {
         stopHostLinks()
         session = null
-        duetSession = DuetHostSession(game, sendToGuest = ::hostSend, onChange = ::onDuetChanged)
-        duetSnapshot = game.snapshot()
-        saveDuet(game)
+        castawaysSession = CastawaysHostSession(game, sendToGuest = ::hostSend, onChange = ::onCastawaysChanged)
+        castawaysSnapshot = game.snapshot()
+        saveCastaways(game)
         prefs.edit().putString(KEY_PIN, pin).apply()
         val link = LanHostLink(pin)
         lan = link
         link.start(hostListener)
         _state.update {
             it.copy(
-                screen = Screen.DUET,
+                screen = Screen.CASTAWAYS,
                 game = null,
-                duet = DuetView.of(game, 0),
-                duetHost = true,
+                castaways = CastawaysView.of(game, 0),
+                castawaysHost = true,
                 tableConnected = false,
                 pairing = null,
                 pin = pin,
@@ -322,44 +322,44 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (NearbyPermissions.granted(appContext)) startNearbyHost()
     }
 
-    private fun onDuetChanged(g: DuetState) {
-        saveDuet(g)
-        duetCueFor(duetSnapshot, g.snapshot())?.let(sfx::play)
-        duetSnapshot = g.snapshot()
-        _state.update { it.copy(duet = DuetView.of(g, 0)) }
+    private fun onCastawaysChanged(g: CastawaysState) {
+        saveCastaways(g)
+        castawaysCueFor(castawaysSnapshot, g.snapshot())?.let(sfx::play)
+        castawaysSnapshot = g.snapshot()
+        _state.update { it.copy(castaways = CastawaysView.of(g, 0)) }
     }
 
-    /** A new Duet game with the same number of turns as the one just played. */
-    fun duetNewGame() {
-        val turns = duetSession?.game?.maxTokens ?: DuetEngine.STANDARD_TURNS
-        duetSession?.startGame(newDuetState(turns))
+    /** A new Castaways game with the same number of turns as the one just played. */
+    fun castawaysNewGame() {
+        val turns = castawaysSession?.game?.maxTokens ?: CastawaysEngine.STANDARD_TURNS
+        castawaysSession?.startGame(newCastawaysState(turns))
     }
 
     /** The player taps a word and confirms: this phone applies it itself, the other phone asks the host. */
-    fun duetGuess(index: Int) {
+    fun castawaysGuess(index: Int) {
         val st = _state.value
-        val view = st.duet ?: return
-        if (st.duetHost) duetSession?.guess(index) else client?.send(Protocol.duetGuess(index, view.gameId, view.seq))
+        val view = st.castaways ?: return
+        if (st.castawaysHost) castawaysSession?.guess(index) else client?.send(Protocol.castawaysGuess(index, view.gameId, view.seq))
     }
 
-    fun duetPass() {
+    fun castawaysPass() {
         val st = _state.value
-        val view = st.duet ?: return
-        if (st.duetHost) duetSession?.pass() else client?.send(Protocol.duetPass(view.gameId, view.seq))
+        val view = st.castaways ?: return
+        if (st.castawaysHost) castawaysSession?.pass() else client?.send(Protocol.castawaysPass(view.gameId, view.seq))
     }
 
-    private fun newDuetState(turns: Int): DuetState {
+    private fun newCastawaysState(turns: Int): CastawaysState {
         val lang = _state.value.lang
         val picker = pickers.getOrPut(lang) { WordPicker(readWords(lang)) }
-        return DuetEngine.newGame(lang, picker.next(DuetEngine.SIZE, Random.Default), turns, System.currentTimeMillis(), Random.Default)
+        return CastawaysEngine.newGame(lang, picker.next(CastawaysEngine.SIZE, Random.Default), turns, System.currentTimeMillis(), Random.Default)
     }
 
     /** A finished game is not worth resuming. */
-    private fun saveDuet(g: DuetState) {
-        if (g.over) prefs.edit().remove(KEY_DUET).apply() else prefs.edit().putString(KEY_DUET, DuetCodec.save(g)).apply()
+    private fun saveCastaways(g: CastawaysState) {
+        if (g.over) prefs.edit().remove(KEY_CASTAWAYS).apply() else prefs.edit().putString(KEY_CASTAWAYS, CastawaysCodec.save(g)).apply()
     }
 
-    private fun loadSavedDuet(): DuetState? = prefs.getString(KEY_DUET, null)?.let { DuetCodec.load(it) }
+    private fun loadSavedCastaways(): CastawaysState? = prefs.getString(KEY_CASTAWAYS, null)?.let { CastawaysCodec.load(it) }
 
     private fun stopHostLinks() {
         lan?.stop()
@@ -389,10 +389,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private var client: ClientLink? = null
     private var clientSession = ClientSession()
-    private var duetClient = DuetClientSession()
+    private var castawaysClient = CastawaysClientSession()
 
-    /** True while this phone is the guest in a game (classic table phone or the second Duet player). */
-    private fun guestPlaying(st: UiState) = st.screen == Screen.TABLE || (st.screen == Screen.DUET && !st.duetHost)
+    /** True while this phone is the guest in a game (classic table phone or the second Castaways player). */
+    private fun guestPlaying(st: UiState) = st.screen == Screen.TABLE || (st.screen == Screen.CASTAWAYS && !st.castawaysHost)
     private var wifiTarget: Pair<String, String?>? = null
     private var reconnectName: String? = null
     private var nearbyStartedAt = 0L
@@ -407,7 +407,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun onFound(id: String, name: String) = post {
             if (client !== link) return@post
             _state.update { s -> s.copy(found = s.found.filter { it.id != id } + FoundHost(id, name)) }
-            // after a lost connection, go back to the same spymaster phone by itself
+            // after a lost connection, go back to the same captain phone by itself
             val st = _state.value
             if (guestPlaying(st) && st.status == ClientStatus.LOST && name == reconnectName) connectNearby(id, name)
         }
@@ -426,12 +426,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (client !== link) return@post
             main.removeCallbacks(retry)
             clientSession = ClientSession()
-            duetClient = DuetClientSession()
-            // The game that arrives decides what is shown: the classic table phone or the Duet screen.
+            castawaysClient = CastawaysClientSession()
+            // The game that arrives decides what is shown: the classic table phone or the Castaways screen.
             _state.update {
                 it.copy(
                     status = ClientStatus.CONNECTED, pairingDigits = null, joinMessage = null,
-                    screen = if (it.screen == Screen.DUET) Screen.DUET else Screen.TABLE,
+                    screen = if (it.screen == Screen.CASTAWAYS) Screen.CASTAWAYS else Screen.TABLE,
                 )
             }
             link.send(Protocol.sync())
@@ -439,9 +439,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         override fun onMessage(text: String) = post {
             if (client !== link) return@post
-            duetClient.onMessage(text)?.let { duet ->
-                duet.cue?.let(sfx::play)
-                _state.update { it.copy(duet = duet.view, duetHost = false, view = null, screen = Screen.DUET, lang = duet.view.lang) }
+            castawaysClient.onMessage(text)?.let { castaways ->
+                castaways.cue?.let(sfx::play)
+                _state.update { it.copy(castaways = castaways.view, castawaysHost = false, view = null, screen = Screen.CASTAWAYS, lang = castaways.view.lang) }
                 return@post
             }
             val update = clientSession.onMessage(text) ?: return@post
@@ -464,7 +464,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     stopClient()
                     _state.update {
                         it.copy(
-                            screen = Screen.JOIN, view = null, duet = null, status = ClientStatus.IDLE, found = emptyList(),
+                            screen = Screen.JOIN, view = null, castaways = null, status = ClientStatus.IDLE, found = emptyList(),
                             lang = ownLanguage(), joinMessage = if (detail == "locked") JoinMessage.LOCKED else JoinMessage.WRONG_PIN,
                         )
                     }
@@ -491,9 +491,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun openJoin(fromDuet: Boolean = false) {
+    fun openJoin(fromCastaways: Boolean = false) {
         stopClient()
-        _state.update { it.copy(joinFromDuet = fromDuet, screen = Screen.JOIN, status = ClientStatus.IDLE, found = emptyList(), pairingDigits = null, joinMessage = null, view = null, duet = null) }
+        _state.update { it.copy(joinFromCastaways = fromCastaways, screen = Screen.JOIN, status = ClientStatus.IDLE, found = emptyList(), pairingDigits = null, joinMessage = null, view = null, castaways = null) }
         if (NearbyPermissions.granted(appContext)) startNearbySearch()
     }
 
@@ -548,7 +548,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             fresh.start(Bound(fresh))
             fresh.connect(wifi.first, wifi.second)
         } else if (SystemClock.elapsedRealtime() - nearbyStartedAt >= NEARBY_RESTART_MS) {
-            // Look for the same spymaster phone again; onFound reconnects when it shows up.
+            // Look for the same captain phone again; onFound reconnects when it shows up.
             // Bluetooth discovery can take several seconds, so a search is left running and only restarted now and then.
             val link = NearbyClientLink(appContext, deviceName)
             client?.stop()
@@ -572,8 +572,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         stopClient()
         _state.update {
             it.copy(
-                screen = if (it.screen == Screen.JOIN && it.joinFromDuet) Screen.DUET_HOME else Screen.HOME,
-                view = null, duet = null, status = ClientStatus.IDLE, found = emptyList(),
+                screen = if (it.screen == Screen.JOIN && it.joinFromCastaways) Screen.CASTAWAYS_HOME else Screen.HOME,
+                view = null, castaways = null, status = ClientStatus.IDLE, found = emptyList(),
                 pairingDigits = null, joinMessage = null, lang = ownLanguage(),
             )
         }
@@ -585,7 +585,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         client = null
         old?.stop()
         clientSession = ClientSession()
-        duetClient = DuetClientSession()
+        castawaysClient = CastawaysClientSession()
         wifiTarget = null
         reconnectName = null
     }
@@ -605,7 +605,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         const val KEY_LANG = "lang"
         const val KEY_MUSIC = "music"
         const val KEY_GAME = "game"
-        const val KEY_DUET = "duet_game"
+        const val KEY_CASTAWAYS = "castaways_game"
         const val KEY_PIN = "pin"
         const val KEY_SUFFIX = "device_suffix"
         const val RECONNECT_MS = 3_000L

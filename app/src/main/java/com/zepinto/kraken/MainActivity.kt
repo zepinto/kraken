@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import android.graphics.Color
 import android.os.Bundle
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
-        // the key must stay readable while the spymasters think, and the board while the table plays
+        // the key must stay readable while the captains think, and the board while the table plays
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContent {
             MaterialTheme(
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
                     surface = ComposeColor.Black,
                 )
             ) {
-                Surface(Modifier.fillMaxSize(), color = ComposeColor.Black) { CodenamesApp() }
+                Surface(Modifier.fillMaxSize(), color = ComposeColor.Black) { KrakenApp() }
             }
         }
     }

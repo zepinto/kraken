@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import kotlin.random.Random
 
@@ -10,7 +10,7 @@ enum class Team {
 
 /** What a card is on the secret key. */
 enum class CardType {
-    RED, BLUE, NEUTRAL, ASSASSIN;
+    RED, BLUE, NEUTRAL, KRAKEN;
 
     val team: Team?
         get() = when (this) {
@@ -24,13 +24,13 @@ enum class CardType {
     }
 }
 
-enum class WinReason { AGENTS, ASSASSIN }
+enum class WinReason { TREASURES, KRAKEN }
 
 /** The card revealed most recently, and the team that was guessing when it was revealed. */
 data class LastReveal(val index: Int, val type: CardType, val by: Team)
 
 /**
- * The complete game, held by the spymaster phone, which is the only place that knows the key.
+ * The complete game, held by the captain phone, which is the only place that knows the key.
  * Everything the table phone needs is derived from it by [BoardView.from].
  */
 data class GameState(
@@ -54,18 +54,18 @@ data class GameState(
 
 object Engine {
     const val SIZE = 25
-    const val AGENTS_FIRST = 9
-    const val AGENTS_SECOND = 8
+    const val TREASURES_FIRST = 9
+    const val TREASURES_SECOND = 8
     const val NEUTRALS = 7
 
-    /** A fresh game: the team that starts has 9 agents, the other 8, plus 7 bystanders and 1 assassin. */
+    /** A fresh game: the team that starts has 9 treasures, the other 8, plus 7 empty-sea cards and 1 kraken. */
     fun newGame(lang: Lang, words: List<String>, startTeam: Team, gameId: Long, rng: Random): GameState {
         require(words.size == SIZE) { "a game needs exactly $SIZE words" }
         val key = buildList {
-            repeat(AGENTS_FIRST) { add(CardType.of(startTeam)) }
-            repeat(AGENTS_SECOND) { add(CardType.of(startTeam.other)) }
+            repeat(TREASURES_FIRST) { add(CardType.of(startTeam)) }
+            repeat(TREASURES_SECOND) { add(CardType.of(startTeam.other)) }
             repeat(NEUTRALS) { add(CardType.NEUTRAL) }
-            add(CardType.ASSASSIN)
+            add(CardType.KRAKEN)
         }.shuffled(rng)
         return GameState(
             gameId = gameId,
@@ -80,10 +80,10 @@ object Engine {
 
     /**
      * The team in play reveals one card. Clues are spoken at the table, so the app does not count guesses.
-     * - Assassin: the team in play loses at once.
-     * - A team has no agents left: that team wins, whoever uncovered the last one.
-     * - Own agent: the turn goes on until the team passes.
-     * - Bystander or the other team's agent: the turn ends.
+     * - Kraken: the team in play loses at once.
+     * - A team has no treasures left: that team wins, whoever uncovered the last one.
+     * - Own treasure: the turn goes on until the team passes.
+     * - Empty sea or the other team's treasure: the turn ends.
      */
     fun reveal(g: GameState, index: Int): GameState {
         if (g.over || index !in 0 until SIZE || g.revealed[index]) return g
@@ -91,11 +91,11 @@ object Engine {
         val revealed = g.revealed.toMutableList().also { it[index] = true }
         val next = g.copy(revealed = revealed, seq = g.seq + 1, last = LastReveal(index, type, g.turn))
 
-        if (type == CardType.ASSASSIN) {
-            return next.copy(winner = g.turn.other, winReason = WinReason.ASSASSIN)
+        if (type == CardType.KRAKEN) {
+            return next.copy(winner = g.turn.other, winReason = WinReason.KRAKEN)
         }
         for (team in Team.values()) {
-            if (next.remaining(team) == 0) return next.copy(winner = team, winReason = WinReason.AGENTS)
+            if (next.remaining(team) == 0) return next.copy(winner = team, winReason = WinReason.TREASURES)
         }
         return if (type.team == g.turn) next else switchTurn(next)
     }

@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import android.Manifest
 import android.content.Context
@@ -49,9 +49,9 @@ object NearbyPermissions {
     }
 }
 
-private const val SERVICE_ID = "com.zepinto.codenames"
+private const val SERVICE_ID = "com.zepinto.kraken"
 
-/** Strategy STAR: one advertiser (the spymaster phone) with discoverers (table phones) connecting to it. */
+/** Strategy STAR: one advertiser (the captain phone) with discoverers (table phones) connecting to it. */
 private val STRATEGY = Strategy.P2P_STAR
 
 /** Starting an advertisement or discovery that is already running is fine, not an error. */

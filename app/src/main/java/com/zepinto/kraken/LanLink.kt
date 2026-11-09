@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import java.io.BufferedReader
 import java.io.IOException

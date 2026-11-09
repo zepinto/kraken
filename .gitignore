@@ -7,3 +7,4 @@ local.properties
 *.apk
 screens/
 tools/audio-cache/
+.tmp/

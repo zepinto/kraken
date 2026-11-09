@@ -1,10 +1,12 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,14 +79,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun CodenamesApp(vm: AppViewModel = viewModel()) {
+fun KrakenApp(vm: AppViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val t = state.lang.strings
     var showRules by rememberSaveable { mutableStateOf(false) }
-    var rulesDuet by rememberSaveable { mutableStateOf(false) }
+    var rulesCastaways by rememberSaveable { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
     var confirmNewGame by remember { mutableStateOf(false) }
-    var confirmDuetNew by remember { mutableStateOf(false) }
+    var confirmCastawaysNew by remember { mutableStateOf(false) }
 
     val hostPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
         if (r.values.all { it }) vm.startNearbyHost() else vm.nearbyDenied()
@@ -107,7 +109,7 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
     BackHandler(enabled = state.screen != Screen.HOME) {
         when (state.screen) {
             Screen.JOIN -> vm.leaveTable()
-            Screen.DUET_HOME -> vm.leaveDuetHome()
+            Screen.CASTAWAYS_HOME -> vm.leaveCastawaysHome()
             else -> confirmLeave = true
         }
     }
@@ -116,18 +118,18 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
 
     CompositionLocalProvider(LocalStrings provides t) {
         if (showRules) {
-            RulesScreen(initialDuet = rulesDuet, onBack = { showRules = false })
+            RulesScreen(initialCastaways = rulesCastaways, onBack = { showRules = false })
         } else {
             when (state.screen) {
                 Screen.HOME -> HomeScreen(
                     state = state,
-                    onSpymaster = vm::createGame,
+                    onCaptain = vm::createGame,
                     onTable = { vm.openJoin() },
                     onResume = vm::resumeGame,
-                    onDuet = vm::openDuetHome,
-                    onResumeDuet = vm::resumeDuet,
+                    onCastaways = vm::openCastawaysHome,
+                    onResumeCastaways = vm::resumeCastaways,
                     onLanguage = vm::setLanguage,
-                    onRules = { rulesDuet = false; showRules = true },
+                    onRules = { rulesCastaways = false; showRules = true },
                     onMusic = { vm.setMusic(!state.musicOn) },
                 )
                 Screen.HOST -> HostScreen(
@@ -135,7 +137,7 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
                     onEndTurn = vm::hostEndTurn,
                     onNewGame = { confirmNewGame = true },
                     onAllowNearby = { hostPermission.launch(NearbyPermissions.required()) },
-                    onRules = { rulesDuet = false; showRules = true },
+                    onRules = { rulesCastaways = false; showRules = true },
                 )
                 Screen.JOIN -> JoinScreen(
                     state = state,
@@ -144,27 +146,27 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
                     onNearby = vm::connectNearby,
                     onWifi = vm::connectWifi,
                 )
-                Screen.DUET_HOME -> DuetHomeScreen(
+                Screen.CASTAWAYS_HOME -> CastawaysHomeScreen(
                     state = state,
-                    onBack = vm::leaveDuetHome,
-                    onCreate = vm::createDuet,
-                    onJoin = { vm.openJoin(fromDuet = true) },
-                    onResume = vm::resumeDuet,
-                    onRules = { rulesDuet = true; showRules = true },
+                    onBack = vm::leaveCastawaysHome,
+                    onCreate = vm::createCastaways,
+                    onJoin = { vm.openJoin(fromCastaways = true) },
+                    onResume = vm::resumeCastaways,
+                    onRules = { rulesCastaways = true; showRules = true },
                 )
-                Screen.DUET -> DuetScreen(
+                Screen.CASTAWAYS -> CastawaysScreen(
                     state = state,
-                    onGuess = vm::duetGuess,
-                    onPass = vm::duetPass,
-                    onNewGame = { confirmDuetNew = true },
+                    onGuess = vm::castawaysGuess,
+                    onPass = vm::castawaysPass,
+                    onNewGame = { confirmCastawaysNew = true },
                     onAllowNearby = { hostPermission.launch(NearbyPermissions.required()) },
-                    onRules = { rulesDuet = true; showRules = true },
+                    onRules = { rulesCastaways = true; showRules = true },
                 )
                 Screen.TABLE -> TableScreen(
                     state = state,
                     onGuess = vm::guess,
                     onEndTurn = vm::tableEndTurn,
-                    onRules = { rulesDuet = false; showRules = true },
+                    onRules = { rulesCastaways = false; showRules = true },
                 )
             }
         }
@@ -186,19 +188,19 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
                 confirmButton = {
                     TextButton(onClick = {
                         confirmLeave = false
-                        if (state.screen == Screen.HOST || (state.screen == Screen.DUET && state.duetHost)) vm.leaveHost() else vm.leaveTable()
+                        if (state.screen == Screen.HOST || (state.screen == Screen.CASTAWAYS && state.castawaysHost)) vm.leaveHost() else vm.leaveTable()
                     }) { Text(t.leave) }
                 },
                 dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(t.stay) } },
             )
         }
-        if (confirmDuetNew) {
+        if (confirmCastawaysNew) {
             AlertDialog(
-                onDismissRequest = { confirmDuetNew = false },
+                onDismissRequest = { confirmCastawaysNew = false },
                 title = { Text(t.newGameTitle) },
                 text = { Text(t.newGameText) },
-                confirmButton = { TextButton(onClick = { confirmDuetNew = false; vm.duetNewGame() }) { Text(t.newGame) } },
-                dismissButton = { TextButton(onClick = { confirmDuetNew = false }) { Text(t.cancel) } },
+                confirmButton = { TextButton(onClick = { confirmCastawaysNew = false; vm.castawaysNewGame() }) { Text(t.newGame) } },
+                dismissButton = { TextButton(onClick = { confirmCastawaysNew = false }) { Text(t.cancel) } },
             )
         }
         if (confirmNewGame) {
@@ -217,22 +219,7 @@ fun CodenamesApp(vm: AppViewModel = viewModel()) {
 
 @Composable
 private fun Logo(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val w = size.width * 0.5f
-        val h = size.height * 0.68f
-        val corner = CornerRadius(size.width * 0.08f)
-        rotateDraw(14f, pivot = center) {
-            drawRoundRect(Palette.Blue, Offset(center.x - w / 2, center.y - h / 2), Size(w, h), corner)
-        }
-        rotateDraw(-12f, pivot = center) {
-            drawRoundRect(Palette.Red, Offset(center.x - w / 2, center.y - h / 2), Size(w, h), corner)
-            drawCircle(Color.White, size.width * 0.07f, Offset(center.x, center.y - h * 0.18f))
-            drawArc(
-                Color.White, 180f, 180f, true,
-                Offset(center.x - w * 0.26f, center.y + h * 0.02f), Size(w * 0.52f, h * 0.36f),
-            )
-        }
-    }
+    Image(painterResource(R.drawable.logo_kraken), contentDescription = null, modifier = modifier)
 }
 
 /** Music on or off. The sound effects stay on: they are part of the game. */
@@ -280,7 +267,7 @@ private fun TeamTile(team: Team, remaining: Int, modifier: Modifier = Modifier) 
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(t.teamName(team), fontWeight = FontWeight.Bold)
-                Text(t.agentsLabel, fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+                Text(t.treasuresLabel, fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
             }
         }
     }
@@ -295,8 +282,8 @@ private fun TurnBanner(turn: Team, winner: Team?, reason: WinReason?) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             if (winner == null) {
                 Text(t.turnOf(turn), fontWeight = FontWeight.Black, fontSize = 20.sp)
-            } else if (reason == WinReason.ASSASSIN) {
-                Text("☠ " + t.assassinHit(winner.other), fontWeight = FontWeight.Bold, fontSize = 15.sp, textAlign = TextAlign.Center)
+            } else if (reason == WinReason.KRAKEN) {
+                Text("🐙 " + t.krakenHit(winner.other), fontWeight = FontWeight.Bold, fontSize = 15.sp, textAlign = TextAlign.Center)
                 Text("🏆 " + t.teamWins(winner), fontWeight = FontWeight.Black, fontSize = 20.sp)
             } else {
                 Text("🏆 " + t.teamWins(winner), fontWeight = FontWeight.Black, fontSize = 20.sp)
@@ -336,7 +323,7 @@ internal fun WordCell(
         val fontScale = LocalDensity.current.fontScale
         val fitted = (minOf(13f, (maxWidth.value - 6f) / (word.length * 0.72f)) / fontScale).coerceAtLeast(5f)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (skull) Text("☠", fontSize = 12.sp, color = Color.White)
+            if (skull) Text("🐙", fontSize = 12.sp, color = Color.White)
             Text(
                 word.uppercase(),
                 color = textColor,
@@ -379,11 +366,11 @@ internal fun Grid(cell: @Composable (Int, Modifier) -> Unit) {
 @Composable
 private fun HomeScreen(
     state: UiState,
-    onSpymaster: () -> Unit,
+    onCaptain: () -> Unit,
     onTable: () -> Unit,
     onResume: () -> Unit,
-    onDuet: () -> Unit,
-    onResumeDuet: () -> Unit,
+    onCastaways: () -> Unit,
+    onResumeCastaways: () -> Unit,
     onLanguage: (Lang) -> Unit,
     onRules: () -> Unit,
     onMusic: () -> Unit,
@@ -402,7 +389,7 @@ private fun HomeScreen(
             Logo(Modifier.size(76.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("CODENAMES", fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                Text("KRAKEN", fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 Text(t.tagline, color = Palette.Lilac, fontSize = 14.sp)
             }
             MusicButton(state.musicOn, t.musicButton, Palette.Aqua, onMusic)
@@ -414,20 +401,20 @@ private fun HomeScreen(
         Spacer(Modifier.height(20.dp))
         Text(t.classicLabel, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Palette.Lilac)
         Spacer(Modifier.height(8.dp))
-        RoleCard("🕵️", t.spymasterTitle, t.spymasterDesc, Palette.Red, onSpymaster)
+        RoleCard("🏴‍☠️", t.captainTitle, t.captainDesc, Palette.Red, onCaptain)
         Spacer(Modifier.height(14.dp))
-        RoleCard("🎯", t.tableTitle, t.tableDesc, Palette.Blue, onTable)
+        RoleCard("🧭", t.tableTitle, t.tableDesc, Palette.Blue, onTable)
         if (state.hasSavedGame) {
             Spacer(Modifier.height(14.dp))
             PillButton(t.resumeGame, onResume, Modifier.fillMaxWidth(), color = Palette.Aqua)
         }
         Spacer(Modifier.height(22.dp))
-        Text(t.duetLabel, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Palette.Lilac)
+        Text(t.castawaysLabel, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Palette.Lilac)
         Spacer(Modifier.height(8.dp))
-        RoleCard("🤝", t.duetTitle, t.duetDesc, Palette.Agent, onDuet)
-        if (state.hasSavedDuet) {
+        RoleCard("🏝️", t.castawaysTitle, t.castawaysDesc, Palette.Treasure, onCastaways)
+        if (state.hasSavedCastaways) {
             Spacer(Modifier.height(14.dp))
-            PillButton(t.resumeGame, onResumeDuet, Modifier.fillMaxWidth(), color = Palette.Aqua)
+            PillButton(t.resumeGame, onResumeCastaways, Modifier.fillMaxWidth(), color = Palette.Aqua)
         }
         Spacer(Modifier.height(24.dp))
         Text(t.twoPhonesHint, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
@@ -485,7 +472,7 @@ internal fun LanguagePicker(selected: Lang, onSelect: (Lang) -> Unit) {
     }
 }
 
-// ---------------------------------------------------------------- spymaster phone
+// ---------------------------------------------------------------- captain phone
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -500,7 +487,7 @@ private fun HostScreen(
     val g = state.game ?: return
     var keyVisible by rememberSaveable { mutableStateOf(false) }
 
-    // Spymasters look at the key only when they choose to: it hides again when the turn changes or the app is left.
+    // Captains look at the key only when they choose to: it hides again when the turn changes or the app is left.
     LaunchedEffect(g.turn, g.gameId) { keyVisible = false }
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
@@ -561,7 +548,7 @@ private fun KeyGrid(g: GameState) {
             textColor = if (type == CardType.NEUTRAL) Palette.PaperText else Color.White,
             pattern = type,
             dim = if (g.revealed[i]) 0.33f else 1f,
-            skull = type == CardType.ASSASSIN,
+            skull = type == CardType.KRAKEN,
         )
     }
 }
@@ -583,7 +570,7 @@ private fun KeyCover(onShow: () -> Unit) {
                 .padding(vertical = 40.dp, horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("🗝️", fontSize = 48.sp)
+            Text("🗺️", fontSize = 48.sp)
             Text(t.keyHiddenTitle, fontSize = 22.sp, fontWeight = FontWeight.Black)
             Spacer(Modifier.height(6.dp))
             Text(t.keyHiddenHint, textAlign = TextAlign.Center, color = Color.White.copy(alpha = 0.7f))
@@ -595,12 +582,12 @@ private fun KeyCover(onShow: () -> Unit) {
 
 /** How to connect the table phone: shown until it is connected. */
 @Composable
-internal fun ConnectPanel(state: UiState, onAllowNearby: () -> Unit, duet: Boolean = false) {
+internal fun ConnectPanel(state: UiState, onAllowNearby: () -> Unit, castaways: Boolean = false) {
     val t = LocalStrings.current
     Surface(shape = Soft, color = Color.White.copy(alpha = 0.08f), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (duet) t.duetConnectTitle else t.connectTitle, fontWeight = FontWeight.Black, fontSize = 17.sp)
-            Text(if (duet) t.duetConnectHelp else t.connectHelpNearby, fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
+            Text(if (castaways) t.castawaysConnectTitle else t.connectTitle, fontWeight = FontWeight.Black, fontSize = 17.sp)
+            Text(if (castaways) t.castawaysConnectHelp else t.connectHelpNearby, fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
             if (!state.nearbyActive) {
                 if (state.nearbyProblem) Text(t.nearbyUnavailable, fontSize = 13.sp, color = Palette.Sun)
                 Text(t.allowNearby, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
@@ -644,7 +631,7 @@ private fun JoinScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TextButton(onClick = onBack) { Text("← ${t.back}", color = Palette.Aqua, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
-        Text("🎯 ${t.joinTitle}", fontSize = 28.sp, fontWeight = FontWeight.Black)
+        Text("🧭 ${t.joinTitle}", fontSize = 28.sp, fontWeight = FontWeight.Black)
         Text(t.joinHint, color = Palette.Lilac)
 
         if (!nearbyAllowed) {
@@ -679,7 +666,7 @@ private fun JoinScreen(
                                 .clickable { onNearby(host.id, host.name) },
                         ) {
                             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("🕵️", fontSize = 28.sp)
+                                Text("🏴‍☠️", fontSize = 28.sp)
                                 Spacer(Modifier.width(12.dp))
                                 Text(host.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
@@ -739,7 +726,7 @@ private fun TableScreen(
     val t = LocalStrings.current
     val v = state.view
     var selected by rememberSaveable { mutableIntStateOf(-1) }
-    // a new state from the spymaster phone makes any half-made choice stale
+    // a new state from the captain phone makes any half-made choice stale
     LaunchedEffect(v?.seq, v?.gameId) { selected = -1 }
 
     Column(
@@ -790,7 +777,7 @@ private fun TableScreen(
                     pattern = type,
                     // a card face up during play is solid; cards shown only because the game ended are paler
                     dim = if (v.revealed[i]) 1f else 0.45f,
-                    skull = type == CardType.ASSASSIN,
+                    skull = type == CardType.KRAKEN,
                 )
             } else {
                 WordCell(
@@ -824,10 +811,10 @@ private fun TableScreen(
 // ---------------------------------------------------------------- rules
 
 @Composable
-private fun RulesScreen(initialDuet: Boolean, onBack: () -> Unit) {
+private fun RulesScreen(initialCastaways: Boolean, onBack: () -> Unit) {
     val t = LocalStrings.current
-    var duetTab by rememberSaveable(initialDuet) { mutableStateOf(initialDuet) }
-    val sections = if (duetTab) t.duetRulesSections else t.rulesSections
+    var castawaysTab by rememberSaveable(initialCastaways) { mutableStateOf(initialCastaways) }
+    val sections = if (castawaysTab) t.castawaysRulesSections else t.rulesSections
     Column(
         Modifier
             .fillMaxSize()
@@ -843,8 +830,8 @@ private fun RulesScreen(initialDuet: Boolean, onBack: () -> Unit) {
         Spacer(Modifier.height(10.dp))
         // both versions of the game, one tap apart
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            RulesTab("🕵️ ${t.classicTitle}", !duetTab, Modifier.weight(1f)) { duetTab = false }
-            RulesTab("🤝 ${t.duetTitle}", duetTab, Modifier.weight(1f)) { duetTab = true }
+            RulesTab("🏴‍☠️ ${t.classicTitle}", !castawaysTab, Modifier.weight(1f)) { castawaysTab = false }
+            RulesTab("🏝️ ${t.castawaysTitle}", castawaysTab, Modifier.weight(1f)) { castawaysTab = true }
         }
         Spacer(Modifier.height(12.dp))
         Column(
@@ -853,7 +840,7 @@ private fun RulesScreen(initialDuet: Boolean, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(if (duetTab) t.duetLabel else t.classicLabel, color = Palette.Lilac, fontWeight = FontWeight.Bold)
+            Text(if (castawaysTab) t.castawaysLabel else t.classicLabel, color = Palette.Lilac, fontWeight = FontWeight.Bold)
             sections.forEach { section ->
                 Surface(shape = Soft, color = Color.White.copy(alpha = 0.08f), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

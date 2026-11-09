@@ -245,7 +245,6 @@ monk
 nurse
 painter
 pilot
-pirate
 plumber
 poet
 sailor
@@ -275,7 +274,6 @@ robot
 alien
 ninja
 pharaoh
-treasure
 crown
 potion
 spell

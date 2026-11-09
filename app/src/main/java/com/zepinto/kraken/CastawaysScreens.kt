@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,9 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** The Duet menu: how many turns, then create a game on this phone or join the one on the partner's phone. */
+/** The Castaways menu: how many turns, then create a game on this phone or join the one on the partner's phone. */
 @Composable
-internal fun DuetHomeScreen(
+internal fun CastawaysHomeScreen(
     state: UiState,
     onBack: () -> Unit,
     onCreate: (Int) -> Unit,
@@ -50,7 +50,7 @@ internal fun DuetHomeScreen(
     onRules: () -> Unit,
 ) {
     val t = LocalStrings.current
-    var turns by rememberSaveable { mutableIntStateOf(DuetEngine.STANDARD_TURNS) }
+    var turns by rememberSaveable { mutableIntStateOf(CastawaysEngine.STANDARD_TURNS) }
     Column(
         Modifier
             .fillMaxSize()
@@ -66,21 +66,21 @@ internal fun DuetHomeScreen(
             Spacer(Modifier.weight(1f))
             HelpButton(onRules)
         }
-        Text("🤝 ${t.duetTitle}", fontSize = 32.sp, fontWeight = FontWeight.Black)
-        Text(t.duetDesc, color = Palette.Lilac)
+        Text("🏝️ ${t.castawaysTitle}", fontSize = 32.sp, fontWeight = FontWeight.Black)
+        Text(t.castawaysDesc, color = Palette.Lilac)
 
         Surface(shape = Soft, color = Color.White.copy(alpha = 0.08f), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("⏳ ${t.duetTurnsTitle}", fontWeight = FontWeight.Black, fontSize = 17.sp)
+                Text("⏳ ${t.castawaysTurnsTitle}", fontWeight = FontWeight.Black, fontSize = 17.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     listOf(9, 10, 11).forEach { n -> TurnChip(n, turns == n) { turns = n } }
                 }
-                Text(t.duetTurnsHint, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+                Text(t.castawaysTurnsHint, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
             }
         }
-        RoleCard("🆕", t.duetCreateTitle, t.duetCreateDesc, Palette.Agent) { onCreate(turns) }
-        RoleCard("🔗", t.duetJoinTitle, t.duetJoinDesc, Palette.Blue, onJoin)
-        if (state.hasSavedDuet) PillButton(t.resumeGame, onResume, Modifier.fillMaxWidth(), color = Palette.Aqua)
+        RoleCard("🆕", t.castawaysCreateTitle, t.castawaysCreateDesc, Palette.Treasure) { onCreate(turns) }
+        RoleCard("🔗", t.castawaysJoinTitle, t.castawaysJoinDesc, Palette.Blue, onJoin)
+        if (state.hasSavedCastaways) PillButton(t.resumeGame, onResume, Modifier.fillMaxWidth(), color = Palette.Aqua)
     }
 }
 
@@ -101,12 +101,12 @@ private fun TurnChip(n: Int, selected: Boolean, onClick: () -> Unit) {
 }
 
 /**
- * One Duet player's screen. Every phone is both the board and that player's key: the words, this player's own
+ * One Castaways player's screen. Every phone is both the board and that player's key: the words, this player's own
  * key colours, what has been found, and the words already ruled out. The buttons to confirm a guess or pass the
  * turn stay at the bottom of the screen; everything else scrolls above them.
  */
 @Composable
-internal fun DuetScreen(
+internal fun CastawaysScreen(
     state: UiState,
     onGuess: (Int) -> Unit,
     onPass: () -> Unit,
@@ -115,13 +115,13 @@ internal fun DuetScreen(
     onRules: () -> Unit,
 ) {
     val t = LocalStrings.current
-    val v = state.duet ?: return
+    val v = state.castaways ?: return
     var selected by rememberSaveable { mutableIntStateOf(-1) }
     var keyVisible by rememberSaveable { mutableStateOf(true) }
     // an update from the other phone makes a half-made choice stale
     LaunchedEffect(v.seq, v.gameId) { selected = -1 }
-    val connected = state.duetHost || state.status == ClientStatus.CONNECTED
-    val sudden = v.phase == DuetPhase.SUDDEN_DEATH
+    val connected = state.castawaysHost || state.status == ClientStatus.CONNECTED
+    val sudden = v.phase == CastawaysPhase.SUDDEN_DEATH
     val guessing = !v.over && (sudden || v.iGuess)
 
     Column(
@@ -141,16 +141,16 @@ internal fun DuetScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f)) { DuetBanner(v) }
+                Box(Modifier.weight(1f)) { CastawaysBanner(v) }
                 HelpButton(onRules)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoTile("⏳", t.duetTurnsLeft(v.tokens), Modifier.weight(1f))
-                InfoTile("🕵️", t.duetAgents(v.agentsFound, v.agentsTotal), Modifier.weight(1f))
+                InfoTile("⏳", t.castawaysTurnsLeft(v.tokens), Modifier.weight(1f))
+                InfoTile("💰", t.castawaysTreasures(v.treasuresFound, v.treasuresTotal), Modifier.weight(1f))
             }
-            if (state.duetHost) {
+            if (state.castawaysHost) {
                 Chip(
-                    if (state.tableConnected) "🟢 ${t.duetPartnerConnected}" else "🟠 ${t.duetPartnerWaiting}",
+                    if (state.tableConnected) "🟢 ${t.castawaysPartnerConnected}" else "🟠 ${t.castawaysPartnerWaiting}",
                     if (state.tableConnected) Palette.Mint else Palette.Sun,
                 )
             } else if (state.status != ClientStatus.CONNECTED) {
@@ -166,42 +166,42 @@ internal fun DuetScreen(
             when {
                 v.over -> Unit
                 sudden -> {
-                    Text(t.duetSuddenHint, color = Palette.Sun, fontWeight = FontWeight.Bold)
-                    Text(t.duetToFind(v.agentsTotal - v.agentsFound), color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                    Text(t.castawaysSuddenHint, color = Palette.Sun, fontWeight = FontWeight.Bold)
+                    Text(t.castawaysToFind(v.treasuresTotal - v.treasuresFound), color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                 }
-                v.iGive -> Text(t.duetGiveHint, color = Color.White.copy(alpha = 0.85f))
-                else -> Text(t.duetGuessHint, color = Color.White.copy(alpha = 0.85f))
+                v.iGive -> Text(t.castawaysGiveHint, color = Color.White.copy(alpha = 0.85f))
+                else -> Text(t.castawaysGuessHint, color = Color.White.copy(alpha = 0.85f))
             }
 
             Grid { i, mod ->
                 val mine = v.myKey[i]
                 val found = v.found[i]
-                // Ruled out: a bystander already found for the key that will decide the next guess. It cannot be tapped.
+                // Ruled out: an empty sea already found for the key that will decide the next guess. It cannot be tapped.
                 val ruledOut = if (sudden) v.tan[1 - v.me][i] else v.tan[v.giver][i]
                 // Marked on the other key only: just information, still a fair guess.
                 val markedOther = !found && !ruledOut && (v.tan[0][i] || v.tan[1][i])
                 val canGuess = guessing && !found && !ruledOut
-                val fatal = v.phase == DuetPhase.LOST && v.last?.index == i
+                val fatal = v.phase == CastawaysPhase.LOST && v.last?.index == i
                 val fill = when {
-                    found -> Palette.Agent
+                    found -> Palette.Treasure
                     keyVisible -> when (mine) {
-                        DuetCard.AGENT -> Palette.AgentDeep
-                        DuetCard.BYSTANDER -> Palette.Sand
-                        DuetCard.ASSASSIN -> Palette.Assassin
+                        CastawaysCard.TREASURE -> Palette.TreasureDeep
+                        CastawaysCard.EMPTY_SEA -> Palette.Sand
+                        CastawaysCard.KRAKEN -> Palette.Kraken
                     }
                     else -> Palette.Paper
                 }
-                val lightText = found || (keyVisible && mine != DuetCard.BYSTANDER)
+                val lightText = found || (keyVisible && mine != CastawaysCard.EMPTY_SEA)
                 WordCell(
                     word = v.words[i],
                     modifier = mod,
                     fill = fill,
                     textColor = if (lightText) Color.White else Palette.PaperText,
-                    // stripes mark your own agents, so they can be told from bystanders without colour
-                    pattern = if (!found && keyVisible && mine == DuetCard.AGENT) CardType.RED else null,
+                    // stripes mark your own treasures, so they can be told from empty-sea cards without colour
+                    pattern = if (!found && keyVisible && mine == CastawaysCard.TREASURE) CardType.RED else null,
                     dim = if (found) 0.9f else if (ruledOut) 0.6f else 1f,
                     selected = selected == i,
-                    skull = !found && keyVisible && mine == DuetCard.ASSASSIN,
+                    skull = !found && keyVisible && mine == CastawaysCard.KRAKEN,
                     badge = if (found) "✓" else if (ruledOut) "✕" else if (markedOther) "•" else null,
                     ring = if (fatal) Palette.Red else null,
                     onClick = if (canGuess) ({ selected = if (selected == i) -1 else i }) else null,
@@ -215,8 +215,8 @@ internal fun DuetScreen(
                 color = Palette.Lilac,
             )
 
-            if (state.duetHost) {
-                if (!state.tableConnected) ConnectPanel(state, onAllowNearby, duet = true)
+            if (state.castawaysHost) {
+                if (!state.tableConnected) ConnectPanel(state, onAllowNearby, castaways = true)
                 PillButton(
                     t.newGame,
                     onNewGame,
@@ -231,13 +231,13 @@ internal fun DuetScreen(
 
         // always in view: choose a word, confirm, pass
         if (guessing) {
-            val pick = selected.takeIf { it in 0 until DuetEngine.SIZE }
+            val pick = selected.takeIf { it in 0 until CastawaysEngine.SIZE }
             PillButton(
-                if (pick != null) t.duetGuess(v.words[pick].uppercase()) else t.tapAWord,
+                if (pick != null) t.castawaysGuess(v.words[pick].uppercase()) else t.tapAWord,
                 { pick?.let { onGuess(it) }; selected = -1 },
                 Modifier.fillMaxWidth(),
                 enabled = pick != null && connected,
-                color = if (sudden) Palette.Red else Palette.Agent,
+                color = if (sudden) Palette.Red else Palette.Treasure,
                 content = Color.White,
             )
             if (!sudden) {
@@ -250,7 +250,7 @@ internal fun DuetScreen(
                     content = Color.White,
                 )
                 if (v.guessesThisTurn < 1) {
-                    Text(t.duetNeedGuess, fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    Text(t.castawaysNeedGuess, fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -270,20 +270,20 @@ private fun InfoTile(emoji: String, text: String, modifier: Modifier = Modifier)
 
 /** Whose job it is now, or how the game ended. */
 @Composable
-private fun DuetBanner(v: DuetView) {
+private fun CastawaysBanner(v: CastawaysView) {
     val t = LocalStrings.current
     val (color, text) = when {
-        v.phase == DuetPhase.WON -> Palette.Agent to "🏆 ${t.duetWon}"
-        v.phase == DuetPhase.LOST ->
-            Palette.Red to "💀 " + if (v.lossReason == LossReason.ASSASSIN) t.duetLostAssassin else t.duetLostSudden
-        v.phase == DuetPhase.SUDDEN_DEATH -> Palette.Red to "⚠️ ${t.duetSuddenDeath}"
-        v.iGive -> Palette.Sun to "🗣️ ${t.duetYouGive}"
-        else -> Palette.Blue to "👆 ${t.duetYouGuess}"
+        v.phase == CastawaysPhase.WON -> Palette.Treasure to "🏆 ${t.castawaysWon}"
+        v.phase == CastawaysPhase.LOST ->
+            Palette.Red to "🐙 " + if (v.lossReason == LossReason.KRAKEN) t.castawaysLostKraken else t.castawaysLostSudden
+        v.phase == CastawaysPhase.SUDDEN_DEATH -> Palette.Red to "⚠️ ${t.castawaysSuddenDeath}"
+        v.iGive -> Palette.Sun to "🗣️ ${t.castawaysYouGive}"
+        else -> Palette.Blue to "👆 ${t.castawaysYouGuess}"
     }
     Surface(shape = Soft, color = color, modifier = Modifier.fillMaxWidth()) {
         Text(
             text,
-            color = if (v.phase == DuetPhase.PLAYING && v.iGive) Palette.Ink else Color.White,
+            color = if (v.phase == CastawaysPhase.PLAYING && v.iGive) Palette.Ink else Color.White,
             fontWeight = FontWeight.Black,
             fontSize = 19.sp,
             textAlign = TextAlign.Center,

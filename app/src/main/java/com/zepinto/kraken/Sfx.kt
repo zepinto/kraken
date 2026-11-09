@@ -1,4 +1,4 @@
-package com.zepinto.codenames
+package com.zepinto.kraken
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -12,7 +12,7 @@ private fun SoundCue.res(): Int = when (this) {
     SoundCue.GOOD -> R.raw.sfx_good
     SoundCue.NEUTRAL -> R.raw.sfx_neutral
     SoundCue.BAD -> R.raw.sfx_bad
-    SoundCue.ASSASSIN -> R.raw.sfx_assassin
+    SoundCue.KRAKEN -> R.raw.sfx_kraken
     SoundCue.WIN -> R.raw.sfx_win
 }
 
