@@ -595,7 +595,7 @@ internal fun ConnectPanel(state: UiState, onAllowNearby: () -> Unit, castaways: 
             }
             if (state.wifiAddresses.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text(t.connectHelpWifi, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+                Text(if (castaways) t.castawaysConnectHelpWifi else t.connectHelpWifi, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
                 Text("${t.wifiAddress}: ${state.wifiAddresses.joinToString("  ")}", fontWeight = FontWeight.Bold, color = Palette.Aqua)
                 Text("${t.pinLabel}: ${state.pin}", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Palette.Sun)
             }
